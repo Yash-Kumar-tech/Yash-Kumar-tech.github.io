@@ -1,0 +1,14 @@
+{
+  "title": "Tongue2Speech: Real-Time Speech Synthesis from Tongue Ultrasound Videos via Spatiotemporal Transformers",
+  "authors": "Yash Sonkar∗, Yasaswi Kilaru∗, Sudheera Yelimeli, Neil Shah, Vineet Gandhi",
+  "venue": "Interspeech",
+  "year": 2026,
+  "projectUrl": "https://tongue2speech.github.io/",
+  "highlightNote": "Oral Presentation",
+  "featured": true,
+  "tags": [
+    "Silent Speech",
+    "Ultrasound-to-Speech",
+    "3D-CNN"
+  ]
+}

@@ -1,0 +1,42 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+const pathname = Astro.url.pathname;
+const normalizedPath = pathname.replace(/\/$/, '') || '/';
+
+const navItems = [
+  { label: 'about', href: '/' },
+  { label: 'research', href: '/research' },
+  { label: 'projects', href: '/projects' },
+  { label: 'cv', href: '/cv' },
+];
+---
+
+<nav class="flex items-center justify-between py-3.5">
+  <div class="flex items-center gap-0.5 sm:gap-1.5 overflow-x-auto no-scrollbar">
+    {
+      navItems.map((item) => {
+        const isActive =
+          item.href === '/'
+            ? normalizedPath === '/'
+            : normalizedPath.startsWith(item.href);
+        return (
+          <a
+            href={item.href}
+            class={`px-2 sm:px-2.5 py-1 text-sm sm:text-base transition-colors rounded shrink-0 ${
+              isActive
+                ? 'text-neutral-900 dark:text-neutral-100 font-medium'
+                : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+            }`}
+          >
+            {item.label}
+          </a>
+        );
+      })
+    }
+  </div>
+
+  <div class="flex items-center shrink-0 pl-1">
+    <ThemeToggle />
+  </div>
+</nav>

@@ -1,0 +1,18 @@
+{
+  "title": "CLARIS: Clear and Intelligible Speech from Whispered and Dysarthric Voices",
+  "authors": "Neil Shah, Yash Sonkar, Shirish Subhash Karande, Vineet Gandhi",
+  "venue": "ACM CHI",
+  "year": 2026,
+  "paperUrl": "https://dl.acm.org/doi/10.1145/3772318.3791734",
+  "projectUrl": "https://claris-w2s.github.io/CLARIS/",
+  "codeUrl": "https://github.com/Yash-Kumar-tech/CLARIS-Inference",
+  "highlightNote": "Oral Presentation • Speech Accessibility Track",
+  "featured": true,
+  "tags": [
+    "Speech AI",
+    "Atypical Speech",
+    "Discrete Units",
+    "On-Device Inference"
+  ],
+  "bibtex": "@inproceedings{10.1145/3772318.3791734,author = {Shah, Neil and Sonkar, Yash and Subhash Karande, Shirish and Gandhi, Vineet},title = {CLARIS: Clear and Intelligible Speech from Whispered and Dysarthric Voices},year = {2026},isbn = {9798400722783},publisher = {Association for Computing Machinery},address = {New York, NY, USA},url = {https://doi.org/10.1145/3772318.3791734},doi = {10.1145/3772318.3791734},abstract = {Whispered and dysarthric speech hinder effective communication and undermine the reliability of voice-enabled systems. We present CLARIS, a compact speech-to-speech restoration system that turns such atypical input into clear, expressive speech. CLARIS requires no disorder-specific architectural tuning, generalizes across languages, and adapts quickly to new accents and speakers, enabling practical personalization. On whispered English, Hindi, and clinically challenging dysarthric speech, CLARIS delivers state-of-the-art intelligibility and naturalness, with listener studies confirming gains in quality, intelligibility, naturalness, and prosody. The system runs in real time, converting one second of input in about 30ms and enables inclusive, private, and personalized voice interaction. Audio samples are available at https://claris-w2s.github.io/CLARIS/},booktitle = {Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems},articleno = {1410},numpages = {18},keywords = {speech interaction, whispered voice, dysarthric voice, voice conversion, silent speech, transfer learning, speech disorders},location = {},series = {CHI '26}}"
+}

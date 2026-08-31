@@ -1,0 +1,60 @@
+---
+// ThemeToggle.astro
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  class="p-2 -mr-1.5 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-transform duration-200 hover:rotate-12 active:scale-90 focus:outline-none rounded cursor-pointer"
+  aria-label="Toggle Theme"
+>
+  <!-- Sun (shown in dark mode) -->
+  <svg
+    id="theme-toggle-sun"
+    class="w-4 h-4 hidden dark:block"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <circle cx="12" cy="12" r="5" stroke-width="2"></circle>
+    <line x1="12" y1="1" x2="12" y2="3" stroke-width="2"></line>
+    <line x1="12" y1="21" x2="12" y2="23" stroke-width="2"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke-width="2"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke-width="2"></line>
+    <line x1="1" y1="12" x2="3" y2="12" stroke-width="2"></line>
+    <line x1="21" y1="12" x2="23" y2="12" stroke-width="2"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke-width="2"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke-width="2"></line>
+  </svg>
+
+  <!-- Moon (shown in light mode) -->
+  <svg
+    id="theme-toggle-moon"
+    class="w-4 h-4 block dark:hidden"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+    ></path>
+  </svg>
+</button>
+
+<script is:inline>
+  function setupThemeToggle() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+  }
+
+  setupThemeToggle();
+  document.addEventListener('astro:after-swap', setupThemeToggle);
+</script>

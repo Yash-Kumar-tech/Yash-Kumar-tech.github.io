@@ -1,0 +1,189 @@
+---
+import AudioCompare from './AudioCompare.astro';
+
+interface AudioComparisonData {
+  title: string;
+  description?: string;
+  inputAudio: string;
+  outputAudio: string;
+  inputLabel?: string;
+  outputLabel?: string;
+}
+
+interface Props {
+  title: string;
+  authors: string;
+  venue: string;
+  year: number | string;
+  paperUrl?: string;
+  projectUrl?: string;
+  codeUrl?: string;
+  bibtex?: string;
+  highlightNote?: string;
+  audioComparison?: AudioComparisonData;
+}
+
+const {
+  title,
+  authors,
+  venue,
+  year,
+  paperUrl,
+  projectUrl,
+  codeUrl,
+  bibtex,
+  highlightNote,
+  audioComparison,
+} = Astro.props;
+
+// Highlight Yash Sonkar
+const formattedAuthors = authors.replace(
+  /Yash Sonkar/g,
+  '<strong class="text-neutral-900 dark:text-neutral-100 font-semibold underline decoration-neutral-400 dark:decoration-neutral-500">Yash Sonkar</strong>'
+);
+
+const pubId = 'pub-' + Math.random().toString(36).substring(2, 9);
+---
+
+<div class="py-4" id={pubId}>
+  <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1.5">
+    <h3 class="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 leading-snug">
+      {paperUrl ? (
+        <a href={paperUrl} target="_blank" rel="noopener noreferrer" class="hover:underline">
+          {title}
+        </a>
+      ) : (
+        title
+      )}
+    </h3>
+    <span class="text-xs sm:text-sm font-mono text-neutral-500 dark:text-neutral-400 shrink-0">
+      {venue} '{String(year).slice(-2)}
+    </span>
+  </div>
+
+  <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed" set:html={formattedAuthors} />
+
+  {highlightNote && (
+    <p class="text-xs text-neutral-500 dark:text-neutral-400 italic mt-0.5">
+      — {highlightNote}
+    </p>
+  )}
+
+  <div class="flex flex-wrap items-center gap-3 mt-2 text-sm text-neutral-500 dark:text-neutral-400 font-medium">
+    {paperUrl && (
+      <a href={paperUrl} target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline">
+        paper ↗
+      </a>
+    )}
+    {projectUrl && (
+      <a href={projectUrl} target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline">
+        project ↗
+      </a>
+    )}
+    {codeUrl && (
+      <a href={codeUrl} target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline">
+        code ↗
+      </a>
+    )}
+    {bibtex && (
+      <button
+        type="button"
+        class="toggle-bib-btn hover:text-neutral-900 dark:hover:text-neutral-100 cursor-pointer"
+        data-target={`${pubId}-bib`}
+      >
+        bibtex
+      </button>
+    )}
+    {audioComparison && (
+      <button
+        type="button"
+        class="toggle-audio-btn hover:text-neutral-900 dark:hover:text-neutral-100 cursor-pointer text-neutral-800 dark:text-neutral-200 underline decoration-neutral-400"
+        data-target={`${pubId}-audio`}
+      >
+        audio demo
+      </button>
+    )}
+  </div>
+
+  {bibtex && (
+    <div id={`${pubId}-bib`} class="accordion-wrapper">
+      <div class="accordion-inner">
+        <div class="mt-3 p-3.5 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 text-xs font-mono relative">
+          <button
+            type="button"
+            class="copy-bib-btn absolute top-2.5 right-2.5 px-2.5 py-1 rounded bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 text-xs transition-colors flex items-center gap-1 cursor-pointer"
+            data-bibtex={bibtex}
+          >
+            <svg class="copy-icon w-3 h-3 stroke-current" fill="none" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2"></path>
+            </svg>
+            <span class="copy-label">copy</span>
+          </button>
+          <pre class="select-all whitespace-pre overflow-x-auto pr-16 text-neutral-700 dark:text-neutral-300 leading-relaxed">{bibtex}</pre>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {audioComparison && (
+    <div id={`${pubId}-audio`} class="accordion-wrapper">
+      <div class="accordion-inner">
+        <AudioCompare
+          title={audioComparison.title}
+          description={audioComparison.description}
+          inputAudio={audioComparison.inputAudio}
+          outputAudio={audioComparison.outputAudio}
+          inputLabel={audioComparison.inputLabel}
+          outputLabel={audioComparison.outputLabel}
+        />
+      </div>
+    </div>
+  )}
+</div>
+
+<script is:inline>
+  function setupPubInteractions() {
+    document.querySelectorAll('.toggle-bib-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        if (targetId) {
+          const el = document.getElementById(targetId);
+          if (el) el.classList.toggle('open');
+        }
+      });
+    });
+
+    document.querySelectorAll('.toggle-audio-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        if (targetId) {
+          const el = document.getElementById(targetId);
+          if (el) el.classList.toggle('open');
+        }
+      });
+    });
+
+    document.querySelectorAll('.copy-bib-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const text = btn.getAttribute('data-bibtex');
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          const label = btn.querySelector('.copy-label');
+          if (label) {
+            label.textContent = 'copied ✓';
+            setTimeout(() => {
+              label.textContent = 'copy';
+            }, 2000);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    });
+  }
+
+  setupPubInteractions();
+  document.addEventListener('astro:after-swap', setupPubInteractions);
+</script>

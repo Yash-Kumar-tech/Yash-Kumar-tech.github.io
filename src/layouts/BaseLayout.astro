@@ -1,0 +1,86 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonicalURL?: string;
+  type?: 'website' | 'article';
+}
+
+const {
+  title = 'Yash Sonkar',
+  description = 'Ph.D. Researcher at IIIT Hyderabad working on Speech AI and ML Systems.',
+  image = '/profile.svg',
+  canonicalURL = Astro.url.href,
+  type = 'website',
+} = Astro.props;
+
+const siteTitle = title === 'Yash Sonkar' ? title : `${title} — Yash Sonkar`;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Primary Meta Tags -->
+    <title>{siteTitle}</title>
+    <meta name="title" content={siteTitle} />
+    <meta name="description" content={description} />
+    <meta name="author" content="Yash Sonkar" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={siteTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, Astro.url)} />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={siteTitle} />
+    <meta property="twitter:description" content={description} />
+
+    <!-- Theme Initialization Script -->
+    <script is:inline>
+      const theme = (() => {
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+          return localStorage.getItem('theme');
+        }
+        if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          return 'light';
+        }
+        return 'dark';
+      })();
+
+      if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+  </head>
+  <body class="bg-white dark:bg-[#111010] text-neutral-900 dark:text-neutral-100 antialiased min-h-screen flex flex-col transition-colors duration-150">
+    <div class="sticky top-0 z-40 w-full backdrop-blur-md bg-white/85 dark:bg-[#111010]/85 border-b border-neutral-200/50 dark:border-neutral-800/50 transition-colors">
+      <div class="w-full max-w-2xl mx-auto px-4 sm:px-6">
+        <Header />
+      </div>
+    </div>
+    <div class="w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 flex-grow flex flex-col">
+      <main class="flex-grow my-4 sm:my-6">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

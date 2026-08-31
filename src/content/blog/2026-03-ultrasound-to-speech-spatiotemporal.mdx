@@ -1,0 +1,156 @@
+---
+title: "Tongue2Speech: Real-Time Speech Synthesis from Tongue Ultrasound Videos via Spatiotemporal Transformers"
+description: "A technical breakdown of converting midsagittal tongue ultrasound imaging into intelligible acoustic speech using 3D spatio-temporal convolutions and Transformer encoders."
+pubDate: 2026-03-02
+tags: ["Speech AI", "Silent Speech", "Ultrasound", "Transformers"]
+featured: true
+category: "Speech AI & Biosignals"
+readingTime: "9 min read"
+series:
+  name: "Speech AI & On-Device Systems"
+  order: 2
+---
+
+Human speech arises from a tightly coordinated physiological system: pulmonic airflow excites the vocal folds, and the vocal tract dynamically modulates the resulting acoustic wave through movements of the tongue, lips, jaw, and velum. 
+
+Among these articulators, **the tongue is the most dynamic and acoustically influential**. Its deformation governs vowel formants and critical consonantal contrasts. 
+
+In our Interspeech 2026 paper, [**Tongue2Speech**](https://tongue2speech.github.io/), we present a lightweight non-autoregressive framework that synthesizes intelligible speech directly from non-invasive tongue ultrasound videos without requiring an acoustic audio signal.
+
+---
+
+## 1. Why Ultrasound for Silent Speech Interfaces?
+
+Silent Speech Interfaces (SSI) aim to enable voice communication when acoustic vocalization is impossible or undesirable—such as for laryngectomy patients, individuals with severe phonatory disorders (e.g., ALS, bulbar palsy), or for private voice commands in noise-sensitive environments.
+
+| Modality | Advantages | Limitations for Practical Deployment |
+| :--- | :--- | :--- |
+| **EMA (Electromagnetic Articulography)** | High spatial precision | Invasive intraoral sensors glued to the tongue; fragile |
+| **Real-Time MRI** | Full vocal tract visualization | Bulky, non-portable, noisy, and temporally limited |
+| **Surface EMG** | Non-invasive skin electrodes | Measures indirect muscular activation rather than actual geometry |
+| **Ultrasound Tongue Imaging (UTI)** | **Direct tongue contour capture at ~80 FPS; portable probes (e.g., Butterfly iQ3)** | **High physiological fidelity with portable hardware** |
+
+Despite its promise, Ultrasound-to-Speech (U2S) research has long suffered from two major bottlenecks:
+1. **Model Architecture**: Most prior approaches relied on 2D CNNs with recurrent LSTMs, which struggle to capture long-range coarticulatory dependencies.
+2. **Evaluation Metrics**: Previous work evaluated almost exclusively on small speaker sets using spectral distortion metrics (MSE, MCD), which correlate poorly with lexical intelligibility.
+
+---
+
+## 2. Polar-to-Cartesian Wedge Preprocessing
+
+Raw ultrasound signals are acquired in polar coordinates as scanline arrays $\mathbf{S} \in \mathbb{R}^{S \times D \times T}$, where $S = 64$ scanlines, $D = 842$ radial samples along each ray, and $T$ is the number of video frames recorded at $\sim 80$ FPS.
+
+Because polar scanlines distort the physical geometry of the lingual surface, we map the raw scanlines into a **Cartesian wedge representation** using GPU-accelerated bilinear grid sampling.
+
+$$
+\Delta \theta = \frac{\theta_{\text{end}} - \theta_{\text{start}}}{S - 1}, \quad R_{\text{max}} = (D - 1)\Delta d
+$$
+
+For each target Cartesian pixel $(x, y)$, the continuous polar coordinates $(r, \theta)$ are:
+
+$$
+r = \sqrt{x^2 + y^2}, \quad \theta = \arctan2(y, x)
+$$
+
+The corresponding continuous scanline and depth indices are computed as:
+
+$$
+r_{\text{idx}} = \frac{r}{\Delta d}, \quad s_{\text{idx}} = \frac{\theta - \theta_{\text{start}}}{\Delta \theta}
+$$
+
+A precomputed validity mask zeroes out coordinates falling outside the probe's $92^\circ$ field-of-view ($r > R_{\text{max}}$ or $\theta \notin [\theta_{\text{start}}, \theta_{\text{end}}]$). The resulting transformed Cartesian frames have a resolution of $64 \times 64$ pixels per frame.
+
+---
+
+## 3. The Tongue2Speech Architecture
+
+Tongue2Speech maps the stream of $64 \times 64$ Cartesian ultrasound frames to 80-dimensional mel-spectrograms through three modular stages:
+
+$$
+\underbrace{\mathbf{V}_{1:T}}_{\substack{\text{Cartesian Wedge} \\ \text{Frames } (64 \times 64)}} \xrightarrow{\text{4}\times \text{3D-CNN}} \underbrace{\mathbf{Z}_{1:T}}_{\substack{\text{Latent Embeddings} \\ (d=256)}} \xrightarrow{\text{6-Layer Transformer}} \underbrace{\mathbf{H}_{1:T}}_{\substack{\text{Coarticulated} \\ \text{Features}}} \xrightarrow{\text{MLP}} \underbrace{\mathbf{M}_{1:T}}_{\substack{\text{80-dim Mel} \\ \text{Spectrogram}}} \xrightarrow{\text{HiFi-GAN}} \underbrace{\hat{y}}_{\text{Audio Waveform}}
+$$
+
+### Stage 1: 3D Spatio-Temporal Convolutional Front-End
+
+Individual 2D video frames lack motion velocity information. We use **four stacked 3D convolutional blocks** (`Conv3D + BatchNorm + ReLU` with $3 \times 3 \times 3$ kernels), operating jointly over spatial dimensions and local temporal windows. 
+
+Adaptive spatial average pooling collapses the spatial dimensions to $1 \times 1$, producing a sequence of per-frame motion-aware latent embeddings $\mathbf{Z} \in \mathbb{R}^{T \times 256}$ while strictly preserving the temporal sequence length $T$.
+
+### Stage 2: 6-Layer Transformer Backbone
+
+To model long-range coarticulation across the entire phrase, the frame embeddings $\mathbf{Z}_{1:T}$ (augmented with sinusoidal positional encodings) are fed into an **encoder-only Transformer**:
+- **Layers**: 6
+- **Attention Heads**: 8 per layer ($d_{\text{model}} = 256$, $d_k = 32$)
+- **Feed-Forward Dimension**: $d_{\text{ff}} = 1024$ with GELU activation
+- **Dropout**: $p = 0.1$
+
+The final representations are projected to the acoustic domain via a 2-layer MLP, producing 80-channel log-mel spectrogram frames $\hat{\mathbf{M}}$.
+
+### Stage 3: Neural Vocoding with HiFi-GAN
+
+The predicted mel-spectrograms are synthesized into $48\text{kHz}$ time-domain audio waveforms using a **HiFi-GAN** neural vocoder. The model is trained using an $L_1$ loss on predicted mel-spectrograms:
+
+$$
+\mathcal{L}_{\text{mel}} = \mathbb{E}_{(\mathbf{V}, \mathbf{M})} \left[ \lVert \mathbf{M} - \hat{\mathbf{M}} \rVert_1 \right]
+$$
+
+### Model Complexity & Real-Time Viability
+
+The entire Tongue2Speech model contains only **$19.17\text{M}$ parameters** ($6.25\text{M}$ in the front-end and Transformer backbone, and $13.92\text{M}$ in the vocoder). Its non-autoregressive nature allows real-time inference on modern edge hardware.
+
+---
+
+## 4. Key Benchmark Results on the TaL Corpus
+
+We evaluate Tongue2Speech and six baselines on the **Tongue and Lips (TaL) corpus** using OpenAI Whisper Medium ASR to measure **Word Error Rate (WER)** alongside spectral **MSE**.
+
+### A. Single-Speaker Evaluation (TaL1)
+
+On the multi-session TaL1 benchmark, Tongue2Speech achieves the lowest WER and MSE across all test sessions:
+
+| Model Architecture | Overall WER (%) ↓ | Overall MSE ↓ |
+| :--- | :--- | :--- |
+| **Conformer-U2S** (Ibrahimov et al., 2025) | 99.26% | 1.819 |
+| **STN-CNN** (Tóth et al., 2023) | 99.08% | 1.877 |
+| **3D-CNN** (No Temporal Aggregation) | 99.26% | 3.155 |
+| **2D-CNN + BiLSTM** | 60.29% | 1.417 |
+| **3D-CNN + BiLSTM** | 36.46% | 0.906 |
+| **3D-CNN + BiLSTM w/ Skip** | 24.15% | 0.793 |
+| **Tongue2Speech (Ours)** | **15.93%** | **0.594** |
+
+> **Key Takeaway:** Models without explicit temporal aggregation or relying purely on 2D convolutions struggle with lexical intelligibility ($\sim 60\text{--}99\%$ WER). Combining 3D spatio-temporal convolutions with a multi-layer Transformer reduces WER to **$15.93\%$**, an **$8.2\%$ absolute improvement** over the strongest skip-connection baseline.
+
+---
+
+### B. Multi-Speaker (TaL80) & Personalization via Fine-Tuning
+
+Ultrasound tongue imaging is inherently speaker-dependent due to individual oral cavity anatomy and probe placement. We evaluated multi-speaker training across 81 speakers in TaL80, as well as rapid personalization for held-out unseen speakers:
+
+| Setting | Configuration | WER (%) ↓ | MSE ↓ |
+| :--- | :--- | :--- | :--- |
+| **Multi-Speaker Training** | 3D-CNN + BiLSTM | 42.46% | 0.981 |
+| | 3D-CNN + BiLSTM w/ Skip | 33.23% | 0.863 |
+| | **Tongue2Speech** | **31.64%** | **0.851** |
+| **Personalization (20 Epochs)** | Speaker 78 | 33.00% | 0.860 |
+| | Speaker 79 | 46.07% | 1.013 |
+| | **Speaker 80** | **27.62%** | **0.852** |
+| | Speaker 81 | 37.87% | 0.914 |
+
+Fine-tuning a general multi-speaker pre-trained model for just **20 epochs** on target speaker data substantially restores intelligibility (reaching as low as **$27.62\%$ WER**), demonstrating that lightweight adaptation is a practical deployment strategy for silent speech interfaces.
+
+---
+
+## 5. Spectral Fidelity & Qualitative Analysis
+
+When comparing generated mel-spectrograms against ground truth audio:
+- Pure 2D models exhibit severe spectral blurring and horizontal banding artifacts due to missing articulatory velocity context.
+- Weakly aggregated architectures suffer from loss of transient burst boundaries (essential for stop consonants like `/p/`, `/t/`, `/k/`).
+- **Tongue2Speech** accurately preserves clear harmonic stacks, formant transition trajectories ($F_1, F_2$), and high-frequency consonant frication.
+
+---
+
+## 6. Summary
+
+Tongue2Speech demonstrates that highly intelligible, natural-sounding speech synthesis is achievable from non-invasive tongue ultrasound alone without requiring multi-modal lip cameras or invasive sensors. 
+
+Audio samples, synthesized spectrograms, and project updates are available at the [**Tongue2Speech Project Page**](https://tongue2speech.github.io/).

@@ -1,0 +1,43 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="pt-12 pb-8 border-t border-neutral-200 dark:border-neutral-800/80 text-sm text-neutral-500 dark:text-neutral-400">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <a
+        href="https://github.com/Yash-Kumar-tech"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+      >
+        github ↗
+      </a>
+      <a
+        href="https://scholar.google.com/citations?user=8hnxehIAAAAJ&hl=en"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+      >
+        scholar ↗
+      </a>
+      <a
+        href="mailto:yash.sonkar@research.iiit.ac.in"
+        class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+      >
+        email ↗
+      </a>
+      <a
+        href="/yash_sonkar_cv.pdf"
+        target="_blank"
+        class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+      >
+        cv ↗
+      </a>
+    </div>
+
+    <p class="font-mono text-xs text-neutral-400 dark:text-neutral-500">
+      © {currentYear} Yash Sonkar
+    </p>
+  </div>
+</footer>

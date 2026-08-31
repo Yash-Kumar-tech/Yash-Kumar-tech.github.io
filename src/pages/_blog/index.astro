@@ -1,0 +1,342 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog');
+const sortedPosts = posts.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+// Collect unique series
+const allSeries = Array.from(
+  new Set(
+    sortedPosts
+      .filter((p) => p.data.series)
+      .map((p) => p.data.series!.name)
+  )
+);
+
+// Curate prominent / high-level topics to avoid wall of micro-tags
+// Include high-level categories and top tags
+const topicSet = new Set<string>();
+sortedPosts.forEach((post) => {
+  // Add primary tags
+  post.data.tags.forEach((tag) => topicSet.add(tag));
+});
+
+// Sort topics
+const allTopics = Array.from(topicSet).sort();
+---
+
+<BaseLayout
+  title="Writing"
+  description="Technical notes and articles by Yash Sonkar on Speech AI and Systems Programming."
+>
+  <div class="space-y-8">
+    <header class="mb-6">
+      <h1 class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mb-3">
+        writing
+      </h1>
+      <p class="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
+        Technical breakdowns, mathematical proofs in LaTeX, and deep dives into Rust systems and Speech AI inference.
+      </p>
+    </header>
+
+    <!-- Minimalist Filter Bar -->
+    <div class="pb-2 border-b border-neutral-100 dark:border-neutral-900">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm font-mono" id="filter-bar">
+        <span class="text-neutral-400 dark:text-neutral-600 uppercase text-[11px] tracking-wider select-none">
+          topic:
+        </span>
+        <button
+          type="button"
+          data-filter="all"
+          data-type="all"
+          class="filter-btn text-neutral-900 dark:text-neutral-100 font-semibold underline underline-offset-4 decoration-neutral-900 dark:decoration-neutral-100 cursor-pointer transition-colors"
+        >
+          all
+        </button>
+        {
+          allTopics.map((topic) => (
+            <button
+              type="button"
+              data-filter={topic}
+              data-type="tag"
+              class="filter-btn text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 cursor-pointer transition-colors"
+            >
+              #{topic.toLowerCase().replace(/\s+/g, '-')}
+            </button>
+          ))
+        }
+      </div>
+
+      <!-- Active Filter Status Indicator -->
+      <div id="filter-status" class="hidden mt-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
+        <span>
+          Showing posts for <strong id="current-filter-label" class="text-neutral-900 dark:text-neutral-100"></strong> (<span id="filtered-count">{sortedPosts.length}</span>)
+        </span>
+        <button
+          type="button"
+          id="clear-filter-btn"
+          class="hover:text-neutral-900 dark:hover:text-neutral-100 underline cursor-pointer"
+        >
+          clear filter
+        </button>
+      </div>
+    </div>
+
+    <!-- Blog Posts List -->
+    <div class="divide-y divide-neutral-100 dark:divide-neutral-900/80" id="posts-list">
+      {
+        sortedPosts.map((post) => {
+          const formattedDate = new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'short',
+          }).format(post.data.pubDate);
+
+          const tagsJson = JSON.stringify(post.data.tags);
+          const seriesName = post.data.series ? post.data.series.name : '';
+
+          return (
+            <article
+              class="blog-post-item py-5 transition-opacity duration-150"
+              data-tags={tagsJson}
+              data-series={seriesName}
+            >
+              <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1.5">
+                <a
+                  href={`/blog/${post.slug}`}
+                  class="text-base sm:text-[17px] font-medium text-neutral-900 dark:text-neutral-100 hover:underline leading-snug"
+                >
+                  {post.data.title}
+                </a>
+                <span class="text-xs sm:text-sm font-mono text-neutral-400 dark:text-neutral-500 shrink-0">
+                  {formattedDate}
+                </span>
+              </div>
+
+              {post.data.series && (
+                <div class="mt-1 flex items-center gap-1.5 text-xs font-mono text-neutral-500 dark:text-neutral-400">
+                  <span class="text-neutral-400 dark:text-neutral-600">↳</span>
+                  <span>Part {post.data.series.order} in</span>
+                  <button
+                    type="button"
+                    class="series-link hover:text-neutral-900 dark:hover:text-neutral-100 underline decoration-neutral-300 dark:decoration-neutral-700 cursor-pointer"
+                    data-series={post.data.series.name}
+                  >
+                    {post.data.series.name}
+                  </button>
+                </div>
+              )}
+
+              <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2 line-clamp-2 leading-relaxed">
+                {post.data.description}
+              </p>
+
+              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2.5 text-xs font-mono text-neutral-400 dark:text-neutral-500">
+                {post.data.tags.map((t) => (
+                  <button
+                    type="button"
+                    class="inline-tag-btn cursor-pointer hover:text-neutral-800 dark:hover:text-neutral-200"
+                    data-tag={t}
+                  >
+                    #{t}
+                  </button>
+                ))}
+                {post.data.readingTime && (
+                  <>
+                    <span>•</span>
+                    <span>{post.data.readingTime}</span>
+                  </>
+                )}
+              </div>
+            </article>
+          );
+        })
+      }
+    </div>
+
+    <!-- Empty State -->
+    <div id="no-posts-message" class="hidden text-center py-12 text-neutral-500 dark:text-neutral-400">
+      <p class="text-sm">No articles found matching this filter.</p>
+      <button
+        type="button"
+        id="empty-reset-btn"
+        class="mt-2 text-xs font-mono underline hover:text-neutral-900 dark:hover:text-neutral-100 cursor-pointer"
+      >
+        reset filter
+      </button>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  function setupBlogFiltering() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const postItems = document.querySelectorAll('.blog-post-item');
+    const statusContainer = document.getElementById('filter-status');
+    const labelEl = document.getElementById('current-filter-label');
+    const countEl = document.getElementById('filtered-count');
+    const clearBtn = document.getElementById('clear-filter-btn');
+    const emptyResetBtn = document.getElementById('empty-reset-btn');
+    const noPosts = document.getElementById('no-posts-message');
+    const inlineTagButtons = document.querySelectorAll('.inline-tag-btn');
+    const seriesLinks = document.querySelectorAll('.series-link');
+
+    function applyFilter(filterValue, type = 'tag', updateUrl = true) {
+      const isAll = !filterValue || filterValue.toLowerCase() === 'all';
+      let visibleCount = 0;
+
+      // Update button styles
+      filterButtons.forEach((btn) => {
+        const btnFilter = btn.getAttribute('data-filter') || '';
+        const btnType = btn.getAttribute('data-type') || '';
+        const isActive = isAll
+          ? btnType === 'all'
+          : btnType === type && btnFilter.toLowerCase() === filterValue.toLowerCase();
+
+        if (isActive) {
+          btn.classList.add(
+            'text-neutral-900',
+            'dark:text-neutral-100',
+            'font-semibold',
+            'underline',
+            'underline-offset-4',
+            'decoration-neutral-900',
+            'dark:decoration-neutral-100'
+          );
+          btn.classList.remove('text-neutral-500', 'dark:text-neutral-400', 'font-normal');
+        } else {
+          btn.classList.remove(
+            'text-neutral-900',
+            'dark:text-neutral-100',
+            'font-semibold',
+            'underline',
+            'underline-offset-4',
+            'decoration-neutral-900',
+            'dark:decoration-neutral-100'
+          );
+          btn.classList.add('text-neutral-500', 'dark:text-neutral-400');
+        }
+      });
+
+      // Filter post items
+      postItems.forEach((item) => {
+        let matches = false;
+        if (isAll) {
+          matches = true;
+        } else if (type === 'series') {
+          const itemSeries = item.getAttribute('data-series') || '';
+          matches = itemSeries.toLowerCase() === filterValue.toLowerCase();
+        } else {
+          const tags = JSON.parse(item.getAttribute('data-tags') || '[]');
+          matches = tags.some((t) => t.toLowerCase() === filterValue.toLowerCase());
+        }
+
+        if (matches) {
+          item.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+
+      // Update status indicator
+      if (statusContainer && labelEl && countEl) {
+        if (isAll) {
+          statusContainer.classList.add('hidden');
+        } else {
+          statusContainer.classList.remove('hidden');
+          labelEl.textContent = type === 'series' ? `Series: "${filterValue}"` : `#${filterValue}`;
+          countEl.textContent = String(visibleCount);
+        }
+      }
+
+      if (noPosts) {
+        if (visibleCount === 0) {
+          noPosts.classList.remove('hidden');
+        } else {
+          noPosts.classList.add('hidden');
+        }
+      }
+
+      // Update URL
+      if (updateUrl) {
+        const url = new URL(window.location.href);
+        if (isAll) {
+          url.searchParams.delete('tag');
+          url.searchParams.delete('series');
+        } else if (type === 'series') {
+          url.searchParams.delete('tag');
+          url.searchParams.set('series', filterValue);
+        } else {
+          url.searchParams.delete('series');
+          url.searchParams.set('tag', filterValue);
+        }
+        window.history.pushState({}, '', url.toString());
+      }
+    }
+
+    // Attach filter bar buttons
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-filter') || 'all';
+        const type = btn.getAttribute('data-type') || 'tag';
+        applyFilter(filter, type, true);
+      });
+    });
+
+    // Inline tags click events
+    inlineTagButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tag = btn.getAttribute('data-tag');
+        if (tag) applyFilter(tag, 'tag', true);
+      });
+    });
+
+    // Series link click events
+    seriesLinks.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const series = btn.getAttribute('data-series');
+        if (series) applyFilter(series, 'series', true);
+      });
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => applyFilter('all', 'all', true));
+    }
+    if (emptyResetBtn) {
+      emptyResetBtn.addEventListener('click', () => applyFilter('all', 'all', true));
+    }
+
+    // Handle initial URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const tagParam = params.get('tag');
+    const seriesParam = params.get('series');
+
+    if (seriesParam) {
+      applyFilter(seriesParam, 'series', false);
+    } else if (tagParam) {
+      applyFilter(tagParam, 'tag', false);
+    }
+
+    // Handle browser popstate
+    window.addEventListener('popstate', () => {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get('tag');
+      const s = p.get('series');
+      if (s) {
+        applyFilter(s, 'series', false);
+      } else if (t) {
+        applyFilter(t, 'tag', false);
+      } else {
+        applyFilter('all', 'all', false);
+      }
+    });
+  }
+
+  setupBlogFiltering();
+  document.addEventListener('astro:after-swap', setupBlogFiltering);
+</script>

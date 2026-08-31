@@ -1,0 +1,156 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="CV"
+  description="Curriculum Vitae of Yash Sonkar — Ph.D. Researcher at IIIT Hyderabad."
+>
+  <div class="space-y-10 max-w-2xl">
+    <!-- Header -->
+    <header
+      class="flex items-start sm:items-baseline justify-between gap-4 pb-4 border-b border-neutral-200 dark:border-neutral-800"
+    >
+      <div>
+        <h1
+          class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100"
+        >
+          yash sonkar
+        </h1>
+        <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+          Ph.D. Researcher in Speech AI @ IIIT Hyderabad
+        </p>
+      </div>
+
+      <a
+        href="/yash_sonkar_cv.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs font-mono text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors shrink-0"
+      >
+        <span>cv.pdf</span>
+        <span class="text-neutral-400">↗</span>
+      </a>
+    </header>
+
+    <!-- Education -->
+    <section class="space-y-4">
+      <h2
+        class="text-xs font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold"
+      >
+        education
+      </h2>
+
+      <div class="space-y-4 text-sm leading-relaxed">
+        <div
+          class="flex flex-col sm:flex-row justify-between items-start sm:items-baseline gap-0.5"
+        >
+          <div>
+            <p class="font-medium text-neutral-900 dark:text-neutral-100">
+              IIIT Hyderabad
+            </p>
+            <p class="text-neutral-600 dark:text-neutral-400">
+              Ph.D. in Computer Science & Engineering (Advised by Dr. Vineet
+              Gandhi)
+            </p>
+          </div>
+          <span class="font-mono text-xs text-neutral-400 shrink-0"
+            >2024 – Present</span
+          >
+        </div>
+
+        <div
+          class="flex flex-col sm:flex-row justify-between items-start sm:items-baseline gap-0.5"
+        >
+          <div>
+            <p class="font-medium text-neutral-900 dark:text-neutral-100">
+              IIIT Bhubaneswar
+            </p>
+            <p class="text-neutral-600 dark:text-neutral-400">
+              B. Tech in Electronics and Telecommunications Engineering (CGPA:
+              9.13)
+            </p>
+          </div>
+          <span class="font-mono text-xs text-neutral-400 shrink-0"
+            >2020 – 2024</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Selected Publications -->
+    <section class="space-y-4">
+      <h2
+        class="text-xs font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold"
+      >
+        selected publications
+      </h2>
+
+      <div class="space-y-4 text-sm leading-relaxed">
+        <div class="space-y-1">
+          <p class="font-medium text-neutral-900 dark:text-neutral-100">
+            CLARIS: Real-Time Multi-Speaker Atypical Speech Restoration via
+            Auto-Regressive Discrete Acoustic Units
+          </p>
+          <p class="text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm">
+            <strong>Yash Sonkar</strong>, Ananya Sharma, Vineet Gandhi — <em
+              class="text-neutral-800 dark:text-neutral-200">ACM CHI 2026</em
+            > (Oral Presentation)
+          </p>
+        </div>
+
+        <div class="space-y-1">
+          <p class="font-medium text-neutral-900 dark:text-neutral-100">
+            Tongue2Speech: Non-Invasive Silent Speech Interface using
+            Spatio-Temporal Ultrasound Transformers
+          </p>
+          <p class="text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm">
+            <strong>Yash Sonkar</strong>, Rohan Verma, Vineet Gandhi — <em
+              class="text-neutral-800 dark:text-neutral-200"
+              >Interspeech 2026</em
+            > (Oral Presentation)
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Skills -->
+    <section class="space-y-4">
+      <h2
+        class="text-xs font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold"
+      >
+        technical skills
+      </h2>
+
+      <div class="space-y-3 text-sm leading-relaxed">
+        <div>
+          <span
+            class="text-xs font-mono text-neutral-400 dark:text-neutral-500 block mb-1"
+            >languages</span
+          >
+          <p class="text-neutral-700 dark:text-neutral-300">
+            Python, Rust, C++, C, SQL, Bash, Kotlin
+          </p>
+        </div>
+        <div>
+          <span
+            class="text-xs font-mono text-neutral-400 dark:text-neutral-500 block mb-1"
+            >machine learning & speech</span
+          >
+          <p class="text-neutral-700 dark:text-neutral-300">
+            PyTorch, ONNX Runtime, OpenVINO, Hugging Face, LiteRT
+          </p>
+        </div>
+        <div>
+          <span
+            class="text-xs font-mono text-neutral-400 dark:text-neutral-500 block mb-1"
+            >systems & platforms</span
+          >
+          <p class="text-neutral-700 dark:text-neutral-300">
+            Win32 / ConPTY API, Tokio, Android, Linux
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

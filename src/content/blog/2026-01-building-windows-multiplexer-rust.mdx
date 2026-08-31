@@ -1,0 +1,203 @@
+---
+title: "Building a Native Windows Terminal Multiplexer in Rust"
+description: "How we built term_mux: leveraging Windows ConPTY APIs, multi-threaded event routing with mpsc channels, dynamic side-by-side pane layout, and ANSI sequence parsing with VTE."
+pubDate: 2026-01-22
+tags: ["Rust", "Systems", "Windows"]
+featured: true
+category: "Systems Engineering"
+readingTime: "9 min read"
+---
+
+While Unix developers have long enjoyed battle-tested terminal multiplexers like `tmux` and `zellij`, Windows developers have traditionally lacked a lightweight, native terminal multiplexer that operates directly within the Windows Console subsystem without requiring WSL, Cygwin, or heavy graphical terminal emulators.
+
+In this article, we break down the architecture of [**`term_mux`**](https://github.com/Yash-Kumar-tech/term_mux), an open-source terminal multiplexer written in Rust that brings dynamic side-by-side pane management to Windows using the native **Windows Pseudo Console (ConPTY)** APIs.
+
+---
+
+## 1. The Core Architecture
+
+A native terminal multiplexer must coordinate three concurrent streams:
+1. **Raw Keyboard Input**: Intercepting keypresses, detecting command prefixes (`Ctrl+A`), and forwarding input to the active pane's process.
+2. **ConPTY Process I/O**: Managing child processes (PowerShell, CMD, Bash) connected through anonymous Win32 pipes.
+3. **Screen Rendering**: Multiplexing ANSI output streams into distinct spatial regions on the host console screen buffer.
+
+The architecture consists of four primary subsystems operating concurrently:
+
+| Subsystem | Thread / Execution Context | Core Responsibilities |
+| :--- | :--- | :--- |
+| **Host Terminal (Raw Mode)** | Main Process Console | Configured with `ENABLE_VIRTUAL_TERMINAL_INPUT` and `ENABLE_VIRTUAL_TERMINAL_PROCESSING` to capture unbuffered raw key codes. |
+| **Input Handler Thread** | Dedicated Reader Thread | Reads raw stdin bytes, evaluates the `Ctrl+A` command prefix state machine, and forwards shell input or dispatches `Command` enums. |
+| **Event Loop & `PaneManager`** | Main Thread (`Arc<Mutex<>>`) | Coordinates pane creation (`AddPane`), lifecycle tracking, active pane focus (`NextPane`), and screen geometry layout calculations. |
+| **ConPTY & Output Threads** | Per-Pane Reader Threads | Reads child process stdout through Win32 anonymous pipes, parses ANSI escape streams via `vte`, and writes characters to the screen buffer. |
+
+---
+
+## 2. Interfacing with Windows ConPTY via `windows-sys`
+
+Prior to the introduction of the Windows Pseudo Console (ConPTY) in Windows 10, terminal applications had to scrape screen buffers. ConPTY provides a true character-mode pseudo-terminal layer on Windows.
+
+Using `windows-sys` (with `Win32_System_Console` and `Win32_System_Pipes`), we initialize a ConPTY instance for each pane with a pair of asynchronous anonymous pipes:
+
+```rust
+use windows_sys::Win32::System::Console::{
+    CreatePseudoConsole, ClosePseudoConsole, ResizePseudoConsole, COORD, HPCON,
+};
+use windows_sys::Win32::System::Pipes::CreatePipe;
+use std::os::windows::io::RawHandle;
+
+pub struct ConPty {
+    pub handle: HPCON,
+    pub input_write: RawHandle,
+    pub output_read: RawHandle,
+}
+
+impl ConPty {
+    pub fn new(size: COORD) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut in_read = 0;
+        let mut in_write = 0;
+        let mut out_read = 0;
+        let mut out_write = 0;
+
+        unsafe {
+            // Create pipe pairs for standard input and output
+            CreatePipe(&mut in_read, &mut in_write, std::ptr::null(), 0);
+            CreatePipe(&mut out_read, &mut out_write, std::ptr::null(), 0);
+
+            let mut hpcon: HPCON = 0;
+            let res = CreatePseudoConsole(size, in_read, out_write, 0, &mut hpcon);
+            if res != 0 {
+                return Err(format!("Failed to create ConPTY: HRESULT {:#X}", res).into());
+            }
+
+            Ok(Self {
+                handle: hpcon,
+                input_write: in_write as RawHandle,
+                output_read: out_read as RawHandle,
+            })
+        }
+    }
+
+    pub fn resize(&self, size: COORD) -> Result<(), Box<dyn std::error::Error>> {
+        unsafe {
+            let res = ResizePseudoConsole(self.handle, size);
+            if res != 0 {
+                return Err("Failed to resize pseudo console".into());
+            }
+        }
+        Ok(())
+    }
+}
+```
+
+---
+
+## 3. Raw Console Mode & Signal Handling
+
+To intercept keystrokes before the OS buffers or echoes them, `term_mux` configures the host console into **Raw Mode** during initialization:
+
+```rust
+use windows_sys::Win32::System::Console::{
+    GetConsoleMode, SetConsoleMode, GetStdHandle,
+    STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT,
+    ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+};
+
+pub fn setup_raw_mode() -> (u32, u32) {
+    unsafe {
+        let h_in = GetStdHandle(STD_INPUT_HANDLE);
+        let h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        let mut orig_in = 0;
+        let mut orig_out = 0;
+        GetConsoleMode(h_in, &mut orig_in);
+        GetConsoleMode(h_out, &mut orig_out);
+
+        // Disable canonical mode, echo, and default line processing
+        let raw_in = (orig_in & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT))
+            | ENABLE_VIRTUAL_TERMINAL_INPUT;
+        let raw_out = orig_out | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        SetConsoleMode(h_in, raw_in);
+        SetConsoleMode(h_out, raw_out);
+
+        (orig_in, orig_out)
+    }
+}
+```
+
+On exit, `restore_terminal_mode` guarantees the terminal returns to its original state, avoiding cursor artifacts or corrupted shell modes.
+
+---
+
+## 4. Keybinding State Machine & Command Routing
+
+Like `tmux`, `term_mux` uses a **prefix key** pattern (`Ctrl+A`, byte value `0x01`):
+
+| Keybinding | Action | Internal Event |
+| :--- | :--- | :--- |
+| `Ctrl+A`, `c` | **Create** a new pane | `Event::KeyCommand(Command::AddPane)` |
+| `Ctrl+A`, `n` | **Next** pane (cycle focus) | `Event::KeyCommand(Command::NextPane)` |
+| `Ctrl+A`, `x` | **Close** active pane | `Event::KeyCommand(Command::RemovePane)` |
+| `Ctrl+A`, `q` | **Quit** `term_mux` | `Event::KeyCommand(Command::Quit)` |
+| `Ctrl+A`, `Ctrl+A` | Send literal `Ctrl+A` | Forwarded directly to active child process |
+
+The input listener thread runs a two-state transition machine:
+- **`Normal`**: If byte == `0x01`, switch to `WaitingForCommand` state; otherwise, write byte to active pane's `input_write` handle.
+- **`WaitingForCommand`**: Inspect the next character:
+  - `'c'`: Send `AddPane` command through channel.
+  - `'n'`: Send `NextPane` command.
+  - `'x'`: Send `RemovePane` command.
+  - `'q'`: Send `Quit` command.
+  - `0x01`: Emit a literal `0x01` byte to the active pane.
+  - Revert state to `Normal`.
+
+---
+
+## 5. Dynamic Pane Layout & VTE Sequence Parsing
+
+When panes are added or closed, `PaneManager` recalculates the visible geometry (`PaneRegion { left, top, width, height }`) across all active panes and triggers `ResizePseudoConsole` so child shells (like PowerShell or Vim) adjust their column widths automatically:
+
+```rust
+impl PaneManager {
+    pub fn layout_panes(&mut self, console_size: COORD) -> Result<(), Box<dyn std::error::Error>> {
+        let count = self.panes.len();
+        if count == 0 {
+            return Ok(());
+        }
+
+        let pane_width = console_size.X / count as i16;
+        for (i, pane) in self.panes.iter_mut().enumerate() {
+            let left = i as i16 * pane_width;
+            let width = if i == count - 1 {
+                console_size.X - left // Fill remaining columns
+            } else {
+                pane_width
+            };
+
+            pane.region = PaneRegion {
+                left,
+                top: 0,
+                width,
+                height: console_size.Y,
+            };
+
+            // Notify ConPTY of updated dimensions
+            let pty_size = COORD { X: width, Y: console_size.Y };
+            pane.pty.resize(pty_size)?;
+        }
+        Ok(())
+    }
+}
+```
+
+For ANSI escape code decoding, we integrate the **`vte`** crate (a fast, table-driven state machine parser based on Paul Williams' ANSI parser state machine) to process escape sequences without tearing or display corruptions.
+
+---
+
+## 6. Summary & Future Work
+
+`term_mux` provides a lightweight, pure-Rust solution for multi-pane terminal workflows on Windows. By pairing the Win32 ConPTY API with multi-threaded `mpsc` event routing and dynamic spatial layout, it offers responsive, flicker-free terminal multiplexing.
+
+Source code and installation instructions are available on GitHub:
+👉 [**Yash-Kumar-tech/term_mux**](https://github.com/Yash-Kumar-tech/term_mux)

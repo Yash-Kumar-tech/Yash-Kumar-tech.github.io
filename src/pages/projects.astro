@@ -1,0 +1,271 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+
+const projects = [
+  {
+    title: 'term_mux',
+    description:
+      'Native Windows terminal multiplexer in Rust featuring Win32 ConPTY API integration, multi-threaded mpsc event routing, dynamic side-by-side pane tiling, and ANSI escape sequence parsing via VTE.',
+    techStack: ['rust', 'conpty', 'win32', 'vte'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/term_mux',
+    status: 'active',
+  },
+  {
+    title: 'CLARIS-Inference',
+    description:
+      'Real-time on-device inference runtime for CLARIS (CHI 2026) speech restoration. Features decoupled ONNX model export with dynamic axes, Key-Value caching, and low-latency C++ / LiteRT execution.',
+    techStack: ['python', 'onnx', 'litert', 'c++'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/CLARIS-Inference',
+    status: 'active',
+  },
+  {
+    title: 'Image-Search',
+    description:
+      'Desktop visual search engine combining ChromaDB vector embeddings, SQLite metadata indexing, and on-device Vision-Language Models (Qwen-VL / Florence-2) for semantic photo querying.',
+    techStack: ['python', 'chromadb', 'pytorch', 'vlm'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/Image-Search',
+    status: 'open-source',
+  },
+  {
+    title: 'port_sniffer_rust',
+    description:
+      'Fast concurrent CLI TCP port scanner written in Rust with multi-threaded socket polling, non-blocking I/O, and configurable port range filtering.',
+    techStack: ['rust', 'networking', 'multithreading'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/port_sniffer_rust',
+    status: 'open-source',
+  },
+  {
+    title: 'compose_music_player',
+    description:
+      'Modern Android audio playback application built with Jetpack Compose, Material 3 design, Media3 ExoPlayer architecture, and background playback service.',
+    techStack: ['kotlin', 'jetpack-compose', 'media3', 'android'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/compose_music_player',
+    status: 'open-source',
+  },
+  {
+    title: 'BitNet 1.58-bit Rust Engine',
+    description:
+      'Rust inference engine for 1.58-bit ternary LLMs featuring hand-crafted AVX2 SIMD Multiply-Add (MAD) kernels, Look-Up Table (LUT) constructors, and zero-copy GGUF parsing.',
+    techStack: ['rust', 'avx2', 'gguf', 'quantization'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech',
+    status: 'active',
+  },
+];
+// Collect all unique tech tags
+const techSet = new Set<string>();
+projects.forEach((p) => p.techStack.forEach((t) => techSet.add(t)));
+const sortedTech = Array.from(techSet).sort();
+---
+
+<BaseLayout
+  title="Projects"
+  description="Systems and open source projects by Yash Sonkar."
+>
+  <div class="space-y-8">
+    <header class="mb-6">
+      <h1 class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mb-3">
+        projects
+      </h1>
+      <p class="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
+        Open-source systems, terminal multiplexers, Android applications, and low-level ML inference backends in Rust, C++, Python, and Kotlin.
+      </p>
+    </header>
+
+    <!-- Minimalist Filter Bar -->
+    <div class="pb-2 border-b border-neutral-100 dark:border-neutral-900">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm font-mono" id="project-filter-bar">
+        <span class="text-neutral-400 dark:text-neutral-600 uppercase text-[11px] tracking-wider select-none">
+          filter:
+        </span>
+        <button
+          type="button"
+          data-tech="all"
+          class="proj-filter-btn text-neutral-900 dark:text-neutral-100 font-semibold underline underline-offset-4 decoration-neutral-900 dark:decoration-neutral-100 cursor-pointer transition-colors"
+        >
+          all
+        </button>
+        {
+          sortedTech.map((tech) => (
+            <button
+              type="button"
+              data-tech={tech}
+              class="proj-filter-btn text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 cursor-pointer transition-colors"
+            >
+              #{tech}
+            </button>
+          ))
+        }
+      </div>
+
+      <!-- Active Filter Status -->
+      <div id="proj-filter-status" class="hidden mt-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
+        <span>
+          Showing projects for <strong id="current-tech-label" class="text-neutral-900 dark:text-neutral-100"></strong> (<span id="proj-filtered-count">{projects.length}</span>)
+        </span>
+        <button
+          type="button"
+          id="clear-proj-filter-btn"
+          class="hover:text-neutral-900 dark:hover:text-neutral-100 underline cursor-pointer"
+        >
+          clear filter
+        </button>
+      </div>
+    </div>
+
+    <!-- Projects List -->
+    <div class="divide-y divide-neutral-100 dark:divide-neutral-900/80" id="projects-list">
+      {
+        projects.map((project) => (
+          <ProjectCard
+            title={project.title}
+            description={project.description}
+            techStack={project.techStack}
+            githubUrl={project.githubUrl}
+            blogUrl={project.blogUrl}
+            status={project.status}
+          />
+        ))
+      }
+    </div>
+
+    <!-- Empty State -->
+    <div id="no-projects-message" class="hidden text-center py-12 text-neutral-500 dark:text-neutral-400">
+      <p class="text-sm">No projects found matching this technology.</p>
+      <button
+        type="button"
+        id="empty-proj-reset-btn"
+        class="mt-2 text-xs font-mono underline hover:text-neutral-900 dark:hover:text-neutral-100 cursor-pointer"
+      >
+        reset filter
+      </button>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  function setupProjectFiltering() {
+    const filterButtons = document.querySelectorAll('.proj-filter-btn');
+    const projectItems = document.querySelectorAll('.project-item');
+    const statusContainer = document.getElementById('proj-filter-status');
+    const labelEl = document.getElementById('current-tech-label');
+    const countEl = document.getElementById('proj-filtered-count');
+    const clearBtn = document.getElementById('clear-proj-filter-btn');
+    const emptyResetBtn = document.getElementById('empty-proj-reset-btn');
+    const noProjects = document.getElementById('no-projects-message');
+    const inlineTagButtons = document.querySelectorAll('.project-tag-btn');
+
+    function applyFilter(selectedTech, updateUrl = true) {
+      const isAll = !selectedTech || selectedTech.toLowerCase() === 'all';
+      let visibleCount = 0;
+
+      filterButtons.forEach((btn) => {
+        const btnTech = btn.getAttribute('data-tech') || '';
+        const isActive = isAll
+          ? btnTech.toLowerCase() === 'all'
+          : btnTech.toLowerCase() === selectedTech.toLowerCase();
+
+        if (isActive) {
+          btn.classList.add(
+            'text-neutral-900',
+            'dark:text-neutral-100',
+            'font-semibold',
+            'underline',
+            'underline-offset-4',
+            'decoration-neutral-900',
+            'dark:decoration-neutral-100'
+          );
+          btn.classList.remove('text-neutral-500', 'dark:text-neutral-400', 'font-normal');
+        } else {
+          btn.classList.remove(
+            'text-neutral-900',
+            'dark:text-neutral-100',
+            'font-semibold',
+            'underline',
+            'underline-offset-4',
+            'decoration-neutral-900',
+            'dark:decoration-neutral-100'
+          );
+          btn.classList.add('text-neutral-500', 'dark:text-neutral-400');
+        }
+      });
+
+      projectItems.forEach((item) => {
+        const techList = JSON.parse(item.getAttribute('data-tech') || '[]');
+        const matches =
+          isAll || techList.some((t) => t.toLowerCase() === selectedTech.toLowerCase());
+
+        if (matches) {
+          item.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+
+      if (statusContainer && labelEl && countEl) {
+        if (isAll) {
+          statusContainer.classList.add('hidden');
+        } else {
+          statusContainer.classList.remove('hidden');
+          labelEl.textContent = `#${selectedTech}`;
+          countEl.textContent = String(visibleCount);
+        }
+      }
+
+      if (noProjects) {
+        if (visibleCount === 0) {
+          noProjects.classList.remove('hidden');
+        } else {
+          noProjects.classList.add('hidden');
+        }
+      }
+
+      if (updateUrl) {
+        const url = new URL(window.location.href);
+        if (isAll) {
+          url.searchParams.delete('tech');
+        } else {
+          url.searchParams.set('tech', selectedTech);
+        }
+        window.history.pushState({}, '', url.toString());
+      }
+    }
+
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tech = btn.getAttribute('data-tech') || 'all';
+        applyFilter(tech, true);
+      });
+    });
+
+    inlineTagButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tech = btn.getAttribute('data-tech');
+        if (tech) applyFilter(tech, true);
+      });
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => applyFilter('all', true));
+    }
+    if (emptyResetBtn) {
+      emptyResetBtn.addEventListener('click', () => applyFilter('all', true));
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const techParam = params.get('tech');
+    if (techParam) {
+      applyFilter(techParam, false);
+    }
+
+    window.addEventListener('popstate', () => {
+      const p = new URLSearchParams(window.location.search);
+      applyFilter(p.get('tech') || 'all', false);
+    });
+  }
+
+  setupProjectFiltering();
+  document.addEventListener('astro:after-swap', setupProjectFiltering);
+</script>

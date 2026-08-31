@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PubCard from '../components/PubCard.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getCollection } from 'astro:content';
+
+const allPubs = await getCollection('publications');
+const sortedPubs = allPubs.sort((a, b) => b.data.year - a.data.year);
+
+const projects = [
+  {
+    title: 'term_mux',
+    description:
+      'Native Windows terminal multiplexer in Rust featuring Win32 ConPTY API integration, multi-threaded mpsc event routing, dynamic side-by-side pane tiling, and ANSI parsing via VTE.',
+    techStack: ['rust', 'conpty', 'win32', 'vte'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/term_mux',
+    status: 'active',
+  },
+  {
+    title: 'CLARIS-Inference',
+    description:
+      'Real-time on-device inference runtime for CLARIS (CHI 2026) speech restoration with decoupled ONNX models, dynamic axes, Key-Value caching, and LiteRT acceleration.',
+    techStack: ['python', 'onnx', 'litert', 'c++'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/CLARIS-Inference',
+    status: 'active',
+  },
+  {
+    title: 'Image-Search',
+    description:
+      'Desktop visual search engine combining ChromaDB vector embeddings, SQLite metadata indexing, and on-device Vision-Language Models for semantic photo querying.',
+    techStack: ['python', 'chromadb', 'pytorch', 'vlm'],
+    githubUrl: 'https://github.com/Yash-Kumar-tech/Image-Search',
+    status: 'open-source',
+  },
+];
+---
+
+<BaseLayout>
+  <!-- Hero Section -->
+  <section class="mb-12">
+    <h1 class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mb-4">
+      yash sonkar
+    </h1>
+
+    <div class="space-y-4 text-base sm:text-[17px] text-neutral-700 dark:text-neutral-300 leading-relaxed">
+      <p>
+        I'm a Ph.D. student in Computer Science & Engineering at <a href="https://www.iiit.ac.in/" target="_blank" rel="noopener noreferrer" class="prose-link">IIIT Hyderabad</a>, advised by <a href="https://faculty.iiit.ac.in/~vgandhi/" target="_blank" rel="noopener noreferrer" class="prose-link">Dr. Vineet Gandhi</a> at the Centre for Visual Information Technology (CVIT).
+      </p>
+      <p>
+        My research focuses on <strong>Speech AI</strong>, particularly atypical speech restoration and silent speech interfaces (ultrasound-to-speech). Alongside research, I build high-performance systems and ML inference backends in <strong>Rust, C++, and PyTorch</strong>.
+      </p>
+    </div>
+
+    <!-- Quick Links Row -->
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-sm font-mono text-neutral-500 dark:text-neutral-400">
+      <a href="https://scholar.google.com/citations?user=8hnxehIAAAAJ&hl=en" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors">
+        scholar ↗
+      </a>
+      <a href="https://github.com/Yash-Kumar-tech" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors">
+        github ↗
+      </a>
+      <a href="/cv" class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors">
+        cv ↗
+      </a>
+      <a href="mailto:yash.sonkar@research.iiit.ac.in" class="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors">
+        email ↗
+      </a>
+    </div>
+  </section>
+
+  <!-- Research / Publications Section -->
+  <section class="mb-12 pt-8 border-t border-neutral-200 dark:border-neutral-800/80">
+    <div class="flex items-baseline justify-between mb-3">
+      <h2 class="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100">
+        research
+      </h2>
+      <a href="/research" class="text-xs sm:text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+        all ({sortedPubs.length}) →
+      </a>
+    </div>
+
+    <div class="divide-y divide-neutral-100 dark:divide-neutral-900">
+      {
+        sortedPubs.map((pub) => (
+          <PubCard
+            title={pub.data.title}
+            authors={pub.data.authors}
+            venue={pub.data.venue}
+            year={pub.data.year}
+            paperUrl={pub.data.paperUrl}
+            projectUrl={pub.data.projectUrl}
+            codeUrl={pub.data.codeUrl}
+            bibtex={pub.data.bibtex}
+            highlightNote={pub.data.highlightNote}
+            audioComparison={pub.data.audioComparison}
+          />
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- Projects Section -->
+  <section class="mb-12 pt-8 border-t border-neutral-200 dark:border-neutral-800/80">
+    <div class="flex items-baseline justify-between mb-3">
+      <h2 class="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100">
+        projects
+      </h2>
+      <a href="/projects" class="text-xs sm:text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+        all ({projects.length}) →
+      </a>
+    </div>
+
+    <div class="divide-y divide-neutral-100 dark:divide-neutral-900">
+      {
+        projects.map((proj) => (
+          <ProjectCard
+            title={proj.title}
+            description={proj.description}
+            techStack={proj.techStack}
+            githubUrl={proj.githubUrl}
+            status={proj.status}
+          />
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

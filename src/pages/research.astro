@@ -1,9 +1,9 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import PubCard from '../components/PubCard.astro';
-import { getCollection } from 'astro:content';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PubCard from "../components/PubCard.astro";
+import { getCollection } from "astro:content";
 
-const allPubs = await getCollection('publications');
+const allPubs = await getCollection("publications");
 const sortedPubs = allPubs.sort((a, b) => b.data.year - a.data.year);
 ---
 
@@ -13,11 +13,18 @@ const sortedPubs = allPubs.sort((a, b) => b.data.year - a.data.year);
 >
   <div class="space-y-8">
     <header class="mb-6">
-      <h1 class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mb-3">
+      <h1
+        class="text-3xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mb-3"
+      >
         research
       </h1>
-      <p class="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-        My doctoral research at the Speech and Vision Lab (SVL), IIIT Hyderabad explores real-time generative models for atypical speech restoration, discrete acoustic unit representations, and silent speech interfaces from tongue ultrasound videos.
+      <p
+        class="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed"
+      >
+        My doctoral research at the Center for Visual Information Technology
+        (CVIT), IIIT Hyderabad explores real-time generative models for atypical
+        speech restoration, discrete acoustic unit representations, and silent
+        speech interfaces from tongue ultrasound videos.
       </p>
     </header>
 
